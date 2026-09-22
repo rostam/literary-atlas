@@ -107,3 +107,17 @@ dl.stats dd { margin: 0; font-family: "IBM Plex Mono", monospace; font-variant-n
   .viewport { height: 62vh; }
   .panel { width: 100vw; border-left: 0; }
 }
+
+/* A setting that uses an invented name for a real place — Hardy's Wessex,
+   Middlemarch in the Midlands. Placed, but said out loud rather than hidden. */
+.fict {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule);
+  padding: 0 4px;
+  margin-left: 5px;
+  white-space: nowrap;
+}
+.panel dl.meta dd .fict { vertical-align: 1px; }

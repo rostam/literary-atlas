@@ -2,9 +2,14 @@
 
 The settings are free prose ("A Benedictine monastery in northern Italy"), so this
 matches place names inside them rather than geocoding an address. Cities are tried
-before countries so "Barcelona, Spain" lands on Barcelona. Anything that resolves to
-nowhere real — Discworld, a library between life and death — is deliberately left
-unplaced rather than forced onto a map.
+before countries so "Barcelona, Spain" lands on Barcelona, and the *first* place named
+wins rather than the longest one anywhere in the string, because a setting reads
+primary-place-first.
+
+Anything that resolves to nowhere real — Discworld, a library between life and death —
+is left unplaced rather than forced onto a map. A book set in an invented name for a
+real place (Hardy's Wessex, Middlemarch) is placed and flagged instead; see
+`fiction_marker`.
 """
 
 # name -> (lat, lon, kind, display)
@@ -21,6 +26,7 @@ CITIES = {
     "cambridge": (52.21, 0.12, "city", "Cambridge"), "bristol": (51.45, -2.59, "city", "Bristol"),
     "newcastle": (54.98, -1.61, "city", "Newcastle"), "cotswolds": (51.83, -1.83, "region", "the Cotswolds"),
     "west country": (50.90, -3.50, "region", "the West Country"),
+    "wessex": (50.90, -2.40, "region", "Wessex, Hardy's southwest England"),
     "english midlands": (52.48, -1.90, "region", "the Midlands"), "midlands": (52.48, -1.90, "region", "the Midlands"),
     "yorkshire": (53.96, -1.08, "region", "Yorkshire"), "cornwall": (50.44, -4.90, "region", "Cornwall"),
     "dublin": (53.35, -6.26, "city", "Dublin"), "edinburgh": (55.95, -3.19, "city", "Edinburgh"),
@@ -40,13 +46,14 @@ CITIES = {
     "venice": (45.44, 12.33, "city", "Venice"), "genoa": (44.41, 8.93, "city", "Genoa"),
     "milan": (45.46, 9.19, "city", "Milan"), "naples": (40.85, 14.27, "city", "Naples"),
     "sicily": (37.60, 14.02, "region", "Sicily"), "northern italy": (45.40, 9.50, "region", "northern Italy"),
+    "liguria": (44.32, 8.80, "region", "Liguria"),
     "lisbon": (38.72, -9.14, "city", "Lisbon"), "amsterdam": (52.37, 4.90, "city", "Amsterdam"),
     "brussels": (50.85, 4.35, "city", "Brussels"), "copenhagen": (55.68, 12.57, "city", "Copenhagen"),
     "stockholm": (59.33, 18.07, "city", "Stockholm"), "oslo": (59.91, 10.75, "city", "Oslo"),
     "reykjavik": (64.15, -21.94, "city", "Reykjavík"), "helsinki": (60.17, 24.94, "city", "Helsinki"),
     "warsaw": (52.23, 21.01, "city", "Warsaw"), "budapest": (47.50, 19.04, "city", "Budapest"),
     "istanbul": (41.01, 28.98, "city", "Istanbul"), "athens": (37.98, 23.73, "city", "Athens"),
-    "ephebe": (37.98, 23.73, "city", "Ephebe"), "crete": (35.24, 24.81, "region", "Crete"),
+    "crete": (35.24, 24.81, "region", "Crete"),
     "cairo": (30.04, 31.24, "city", "Cairo"), "alexandria": (31.20, 29.92, "city", "Alexandria"),
     "abydos": (26.18, 31.92, "city", "Abydos"), "baghdad": (33.31, 44.37, "city", "Baghdad"),
     "damascus": (33.51, 36.29, "city", "Damascus"), "beirut": (33.89, 35.50, "city", "Beirut"),
@@ -61,6 +68,10 @@ CITIES = {
     "new orleans": (29.95, -90.07, "city", "New Orleans"), "mississippi": (32.35, -89.40, "region", "Mississippi"),
     "alabama": (32.32, -86.90, "region", "Alabama"), "georgia, usa": (32.17, -82.90, "region", "Georgia"),
     "west virginia": (38.60, -80.45, "region", "West Virginia"), "arizona": (34.05, -111.09, "region", "Arizona"),
+    "american midwest": (41.50, -93.00, "region", "the American Midwest"),
+    "midwest": (41.50, -93.00, "region", "the American Midwest"),
+    "st. louis": (38.63, -90.20, "city", "St. Louis"),
+    "saint louis": (38.63, -90.20, "city", "St. Louis"),
     "nevada": (38.80, -116.42, "region", "Nevada"), "american southwest": (34.50, -111.00, "region", "the American Southwest"),
     "maine": (45.25, -69.44, "region", "Maine"), "ohio": (40.42, -82.91, "region", "Ohio"),
     "texas": (31.97, -99.90, "region", "Texas"), "montana": (46.88, -110.36, "region", "Montana"),
@@ -121,41 +132,73 @@ COUNTRIES = {
     "caribbean": (15.00, -75.00), "europe": (54.00, 15.00), "africa": (0.00, 20.00),
 }
 
-# Settings that are explicitly nowhere, or nowhere findable.
-UNPLACEABLE_HINTS = [
-    "discworld", "fictional", "imaginary", "metaphysical", "allegorical", "afterlife",
-    "between life and death", "between the world of the living", "unspecified", "unnamed",
-    "alternate", "magical world", "outer space", "galaxy", "dystopian state", "no specific",
-    "undisclosed", "symbolic", "dream", "limbo", "purgatory",
+# Words that mark a setting as invented. These do NOT stop a book being placed:
+# Hardy's Wessex is southwest England, Middlemarch is in the Midlands, Calvino's
+# Ombrosa is in Liguria. Refusing those would be wrong. The marker is carried
+# through to the page instead, so the map can say "fictionalised" out loud.
+FICTION_MARKERS = [
+    "fictional", "fictionalis", "fictionaliz", "imaginary", "invented",
+    "allegorical", "metaphysical", "afterlife", "between life and death",
+    "between the world of the living", "alternate", "magical world",
+    "dream", "limbo", "purgatory", "symbolic",
 ]
 
 
+def fiction_marker(text):
+    """The word that marks this setting as invented, or None."""
+    if not text:
+        return None
+    t = text.lower()
+    for h in FICTION_MARKERS:
+        if h in t:
+            return h
+    return None
+
+
+def _earliest(text, names):
+    """(position, key) of the first gazetteer name to appear in `text`.
+
+    Position first, length second. A setting reads primary-place-first — "The
+    American Midwest (Saint Jude...), with later chapters in Philadelphia" is a
+    Midwest novel — so taking the longest match anywhere in the string picked the
+    wrong place. Among names starting at the same position the longest wins, so
+    "mexico city" still beats "mexico".
+    """
+    best = None
+    for name in names:
+        i = text.find(name)
+        if i < 0:
+            continue
+        # require a word boundary so "india" does not fire inside "indiana"
+        before_ok = i == 0 or not text[i - 1].isalpha()
+        end = i + len(name)
+        after_ok = end >= len(text) or not text[end].isalpha()
+        if not (before_ok and after_ok):
+            continue
+        if best is None or i < best[0] or (i == best[0] and len(name) > len(best[1])):
+            best = (i, name)
+    return best
+
+
 def locate(text):
-    """Best (lat, lon, kind, display) for a free-text setting, or None."""
+    """Best (lat, lon, kind, place) for a free-text setting, or None.
+
+    Cities and regions are tried before countries, so "Barcelona, Spain" lands on
+    Barcelona. If nothing real is named at all — a library between life and
+    death, Discworld — this returns None and the book stays off the map.
+    """
     if not text:
         return None
     t = text.lower()
 
-    # Cities and regions first — longest name wins, so "mexico city" beats "mexico".
-    best = None
-    for name, (lat, lon, kind, disp) in CITIES.items():
-        if name in t and (best is None or len(name) > len(best[0])):
-            best = (name, lat, lon, kind, disp)
-    if best:
-        return {"lat": best[1], "lon": best[2], "kind": best[3], "place": best[4]}
+    hit = _earliest(t, CITIES)
+    if hit:
+        lat, lon, kind, disp = CITIES[hit[1]]
+        return {"lat": lat, "lon": lon, "kind": kind, "place": disp}
 
-    bestc = None
-    for name, (lat, lon) in COUNTRIES.items():
-        if name in t and (bestc is None or len(name) > len(bestc[0])):
-            bestc = (name, lat, lon)
-    if bestc:
-        return {"lat": bestc[1], "lon": bestc[2], "kind": "country",
-                "place": bestc[0].title()}
+    hit = _earliest(t, COUNTRIES)
+    if hit:
+        lat, lon = COUNTRIES[hit[1]]
+        return {"lat": lat, "lon": lon, "kind": "country", "place": hit[1].title()}
+
     return None
-
-
-def is_unplaceable(text):
-    if not text:
-        return True
-    t = text.lower()
-    return any(h in t for h in UNPLACEABLE_HINTS)

@@ -95,31 +95,38 @@ def main():
             pass
     print(f"loaded {len(history)} country/decade history files")
 
-    placed = unplaced = noprofile = 0
+    placed = unplaced = noprofile = fictionalised = 0
     out = []
     for b in books:
         pr = profiles.get(b["slug"], {})
         setting = pr.get("setting_place")
-        loc = None
-        if setting and not gazetteer.is_unplaceable(setting):
-            loc = gazetteer.locate(setting)
-        if loc is None and setting:
-            loc = gazetteer.locate(setting)     # try anyway; fiction often names a real anchor
-        if loc is None and b["country"]:
-            loc = None                           # publication country is not a setting; leave it
+        loc = gazetteer.locate(setting)
+        fiction = gazetteer.fiction_marker(setting)
+
+        # One profile dates its setting to the Late Cretaceous. Keeping that on the
+        # timeline axis would compress every other book into a hairline, so deep
+        # time is flagged and left off the axis rather than silently clamped.
+        s_start, s_end = pr.get("setting_start"), pr.get("setting_end")
+        deep_time = s_start is not None and s_start < -3000
+        if deep_time:
+            s_start = s_end = None
 
         rec = dict(b)
         rec.update({
             "setting": clip(setting, 150) if setting else None,
-            "setting_start": pr.get("setting_start"),
-            "setting_end": pr.get("setting_end"),
+            "setting_start": s_start,
+            "setting_end": s_end,
+            "deep_time": deep_time,
             "themes": (pr.get("themes") or [])[:5],
             "backdrop": clip(pr.get("historical_backdrop"), 420),
             "synopsis": clip(pr.get("plot_synopsis"), 420),
             "confidence": pr.get("confidence"),
+            "fictional": bool(fiction),
         })
         if loc:
             rec.update(loc); placed += 1
+            if fiction:
+                fictionalised += 1
         else:
             rec["place"] = None
             if not pr:
@@ -128,8 +135,8 @@ def main():
                 unplaced += 1
         out.append(rec)
 
-    print(f"placed on the map: {placed}")
-    print(f"has a profile but no findable place: {unplaced}")
+    print(f"placed on the map: {placed} ({fictionalised} of them fictionalised real places)")
+    print(f"has a profile but names nowhere real: {unplaced}")
     print(f"no profile at all: {noprofile}")
 
     json.dump({"books": out, "history": history},
@@ -142,6 +149,9 @@ def main():
     from collections import Counter
     c = Counter(r["place"] for r in out if r.get("place"))
     print("\nmost-visited settings:", ", ".join(f"{k} ({v})" for k, v in c.most_common(8)))
+    print(f"set in deep time, kept off the timeline axis: "
+          f"{sum(1 for r in out if r.get('deep_time'))}")
+
     gaps = [(r["year"] - r["setting_start"], r["title_en"]) for r in out
             if r.get("setting_start") and r.get("year")]
     gaps.sort(reverse=True)

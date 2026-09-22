@@ -31,10 +31,14 @@ async function boot() {
     ['With a setting date', dated],
     ['Distinct settings', new Set(state.books.filter(b => b.place).map(b => b.place)).size],
   ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
-  $('#unplacedNote').textContent =
-    `${state.books.length - placed} reviews are not on the map: some have no setting profile, `
-    + `and some are set nowhere real — Discworld, a library between life and death, an unnamed `
-    + `dystopia. Those are left off rather than pinned to a guess.`;
+  const fict = state.books.filter(b => b.place && b.fictional).length;
+  $('#unplacedNote').innerHTML =
+    `${state.books.length - placed} reviews are not on the map: some have no setting profile yet, `
+    + `and some name nowhere real — Discworld, a library between life and death. Those are left `
+    + `off rather than pinned to a guess. `
+    + `<b>${fict}</b> of the books that <em>are</em> placed use an invented name for a real `
+    + `place — Hardy's Wessex, Middlemarch in the Midlands — and are marked `
+    + `<span class="fict">fictionalised</span> when you open them.`;
 
   wire();
   render();
@@ -224,7 +228,7 @@ function showPanel(b) {
     <p class="byline">${esc(b.author)}${b.country ? ' · ' + esc(b.country) : ''}</p>
     <dl class="meta">
       <dt>Published</dt><dd>${era(b.year)}</dd>
-      <dt>Set in</dt><dd>${esc(b.place || '—')}</dd>
+      <dt>Set in</dt><dd>${esc(b.place || '—')}${b.fictional && b.place ? ' <span class="fict">fictionalised</span>' : ''}</dd>
       <dt>Set during</dt><dd>${b.deep_time ? 'deep time' : (b.setting_start != null ? `${era(b.setting_start)}–${era(b.setting_end)}` : '—')}</dd>
       <dt>Rated</dt><dd>${b.rating ?? '—'}/10</dd>
       <dt>Length</dt><dd>${b.pages ? b.pages + ' pp' : '—'}</dd>

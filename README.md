@@ -15,13 +15,13 @@ and puts the books where they actually happen.
 
 ## The two views
 
-**Map** — every book at its setting. Ten books in Tokyo, eight in London, seven in
-Saint Petersburg, four in Tehran. Colour is the rating, size is the page count.
+**Map** — every book at its setting. Ten books in Tokyo, nine in London, eight in New
+York, five in Tehran. Colour is the rating, size is the page count.
 
 **Reach** — every book plotted by when it is set against when it was written. The
 dashed diagonal is the present tense. Most of the cloud hugs it, which is what you would
 expect: novelists mostly write about their own moment. The interest is in the distance
-above the line. Median reach across the collection is **14 years**; *The Name of the
+above the line. Median reach across the collection is **15 years**; *The Name of the
 Rose* reaches back 653, and Nezami's *Khosrow and Shirin* 590.
 
 Because almost everything here is post-1800, a linear year axis would crush the whole
@@ -29,17 +29,23 @@ collection into one corner. Both axes use the same piecewise scale — antiquity
 compressed, the last two centuries given most of the room — so the diagonal stays
 straight and the modern cluster stays readable.
 
-## What is not on the map
+## Fictional places, and places that are simply nowhere
 
-42 of the 191 reviews have no pin. Some have no setting profile yet. The rest are set
-nowhere real: Discworld, a hotel between the living and the dead, a library between
-life and death, an unnamed near-future suburb. Those are left off rather than pinned
-to the author's home country, because "where is this set" genuinely has no answer for
-them — and the count is shown on the page rather than quietly hidden.
+44 of the 191 reviews have no pin: some have no setting profile yet, and the rest name
+nowhere real — Discworld, a library between life and death. Those are left off rather
+than pinned to the author's home country, and the count is shown on the page.
+
+The harder case is a book set in an invented name for a real place. Hardy's Wessex is
+southwest England; Middlemarch is in the Midlands; Calvino's Ombrosa is in Liguria.
+Refusing to place those would be wrong, and placing them silently would be dishonest, so
+they are placed and **marked `fictionalised`** in the book panel. Eight of the 147 are.
 
 Settings are free prose ("A Benedictine monastery in northern Italy"), so placing them
-means matching place names against a hand-built gazetteer of about 250 cities, regions
-and countries, preferring the most specific match. It gets 149 of 191.
+means matching place names against a hand-built gazetteer of about 110 cities, regions
+and countries. The match is the *first* real place named rather than the longest one
+anywhere in the string, because a setting reads primary-place-first: "The American
+Midwest (Saint Jude...), with later chapters in Philadelphia" is a Midwest novel. It
+places 147 of 191.
 
 ## Building it
 
@@ -66,7 +72,7 @@ and about 500 lines of JavaScript.
 
 ```
 pipeline/
-  gazetteer.py   ~250 places, plus the rules for "this is set nowhere real"
+  gazetteer.py   ~110 places, earliest-mention matching, and the fiction markers
   01_build.py    reviews + profiles + history -> atlas.json
   02_land.py     TopoJSON -> plain rings
 docs/
@@ -79,5 +85,5 @@ docs/
 - Settings and their dates were extracted by a language model in the upstream project
   and are not hand-checked. Each profile carries a confidence field; treat the
   antiquity end of the timeline as approximate.
-- A book with several settings gets one pin, at the first place the gazetteer matches.
+- A book with several settings gets one pin, at the first real place it names.
 - The gazetteer is hand-built and Eurocentric in the way the collection itself is.
